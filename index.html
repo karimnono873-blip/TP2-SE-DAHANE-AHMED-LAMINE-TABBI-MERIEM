@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compte Rendu TP2 - ADC (Systèmes Embarqués)</title>
+    <style>
+        /* ================= VARIABLES & THEME ================= */
+        :root {
+            --pixel-blue: #8AB4F8;
+            --pixel-dark-blue: #1A73E8;
+            --pixel-violet: #A142F4;
+            --pixel-dark-violet: #6A1B9A;
+            --bg-deep-space: #0B0B1A;
+            --glass-bg: rgba(25, 25, 45, 0.6);
+            --glass-border: rgba(138, 180, 248, 0.2);
+            --text-main: #E8EAED;
+            --text-muted: #9AA0A6;
+            --glow-shadow: 0 0 20px rgba(161, 66, 244, 0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-deep-space); color: var(--text-main); overflow-x: hidden; line-height: 1.6; }
+
+        /* ================= ASTRONOMIC BACKGROUND ================= */
+        .stars {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(106, 27, 154, 0.15), transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(26, 115, 232, 0.15), transparent 50%);
+        }
+        .star { position: absolute; background-color: white; border-radius: 50%; animation: twinkle infinite alternate; }
+        @keyframes twinkle { 0% { opacity: 0.1; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px white; } }
+
+        /* ================= PAGE DE GARDE ================= */
+        .cover-page {
+            min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; padding: 2rem;
+        }
+        .cover-header { text-transform: uppercase; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 2rem; font-size: 1.1rem; }
+        .cover-title { font-size: 4.5rem; font-weight: 800; background: linear-gradient(135deg, var(--pixel-blue), var(--pixel-violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem; text-shadow: 0 0 40px rgba(161, 66, 244, 0.4); line-height: 1.2; }
+        .cover-subtitle { font-size: 1.8rem; color: var(--text-main); margin-bottom: 4rem; font-weight: 300; }
+        .cover-details { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); padding: 2.5rem 4rem; border-radius: 20px; box-shadow: var(--glow-shadow); }
+        .cover-details h3 { color: var(--pixel-blue); font-size: 1.4rem; margin-bottom: 0.5rem; }
+        .cover-details p { font-size: 1.2rem; margin-bottom: 1.5rem; }
+        .cover-details .binomial { font-weight: bold; font-size: 1.3rem; color: var(--text-main); }
+        .scroll-indicator { position: absolute; bottom: 40px; animation: bounce 2s infinite; color: var(--pixel-blue); font-size: 2rem; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-10px); } }
+
+        /* ================= LAYOUT & GLASSMORPHISM ================= */
+        .container { max-width: 1200px; margin: 0 auto; padding: 4rem 2rem; }
+        .section-title { font-size: 2.5rem; color: var(--pixel-blue); margin-bottom: 2rem; border-bottom: 2px solid var(--pixel-violet); padding-bottom: 0.5rem; display: inline-block; }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 2.5rem; margin-bottom: 3rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+
+        /* ================= CODE BLOCKS ================= */
+        pre { background: #0d0d1a; border-left: 4px solid var(--pixel-violet); padding: 1.5rem; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.95rem; color: #a6accd; margin-top: 1.5rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        code .keyword { color: #89ddff; } code .function { color: #82aaff; } code .comment { color: #546e7a; font-style: italic; }
+
+        /* ================= HARDWARE VISUALIZATION (ADC) ================= */
+        .hardware-container { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 1rem 0 2rem 0; padding: 3rem; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); border-radius: 16px; position: relative; flex-wrap: wrap;}
+        .board { width: 140px; height: 200px; background: #e0e0e0; border-radius: 12px; position: relative; box-shadow: 0 0 25px rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center; }
+        .board::before { content: "NUCLEO C031"; color: #333; font-weight: bold; font-size: 0.85rem; margin-top: 15px; }
+        .chip { width: 45px; height: 45px; background: #222; margin-top: 25px; border-radius: 4px; }
+        .pin { width: 12px; height: 12px; background: #333; border-radius: 50%; position: absolute; }
+        .pin.pa5 { right: 10px; top: 60px; background: var(--pixel-blue); box-shadow: 0 0 10px var(--pixel-blue); }
+        .pin.pa0 { left: 10px; top: 80px; background: #ff9800; box-shadow: 0 0 10px #ff9800; }
+        .component { text-align: center; }
+        .led-viz { width: 35px; height: 35px; background: #444; border-radius: 50%; margin: 0 auto 10px; transition: background 0.1s, box-shadow 0.1s; }
+        .led-viz.on { background: #00ff00; box-shadow: 0 0 30px #00ff00, inset 0 0 15px white; }
+        .wire { height: 4px; background: #555; width: 70px; }
+        
+        /* Potentiometer Styling */
+        .pot-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; border: 1px solid #ff9800; }
+        .slider { -webkit-appearance: none; width: 150px; height: 8px; border-radius: 5px; background: #333; outline: none; margin: 15px 0; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ff9800; cursor: pointer; box-shadow: 0 0 10px #ff9800; }
+        .data-display { font-family: monospace; font-size: 1.1rem; color: #ffb74d; background: #111; padding: 5px 10px; border-radius: 5px; width: 100%; text-align: center; }
+
+        /* ================= POST-LAB ================= */
+        .qa-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+        .qa-card { background: rgba(0, 0, 0, 0.3); border-left: 4px solid var(--pixel-violet); padding: 2rem; border-radius: 8px; transition: all 0.3s ease; }
+        .qa-card:hover { background: rgba(161, 66, 244, 0.1); transform: translateX(10px); }
+        .qa-question { font-size: 1.2rem; font-weight: bold; color: var(--pixel-blue); margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; }
+        .qa-question::before { content: "Q:"; color: var(--pixel-violet); font-size: 1.4rem; }
+        .qa-answer { color: var(--text-main); line-height: 1.7; padding-left: 2.2rem; }
+        .formula { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-family: monospace; color: #82aaff; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="stars" id="stars"></div>
+
+    <section class="cover-page">
+        <div class="cover-header">Université / Département d'Électronique</div>
+        <h1 class="cover-title">Lecture Analogique ADC</h1>
+        <h2 class="cover-subtitle">Travaux Pratiques N°2 - Systèmes Embarqués</h2>
+        
+        <div class="cover-details">
+            <h3>Binôme Réalisateur</h3>
+            <p class="binomial">Dahane Ahmed Lamine<br>& Tabbi Meriem</p>
+            
+            <h3>Enseignante Responsable</h3>
+            <p>Mme. Afaf Saoud</p>
+            
+            <h3 style="margin-top: 1rem; font-size: 1rem; color: var(--text-muted);">Année Universitaire 2025/2026</h3>
+        </div>
+        
+        <div class="scroll-indicator">↓</div>
+    </section>
+
+    <div class="container">
+        
+        <h2 class="section-title">1. Jumeau Numérique & Code C</h2>
+        <section class="glass-panel">
+            
+            <p style="color: var(--text-muted); text-align: center; margin-bottom: 20px;">
+                Objectif : Lire une tension entre 0V et 3.3V provenant d'un potentiomètre sur PA0. La LED sur PA5 s'allume si la valeur dépasse 50%.
+            </p>
+
+            <div class="hardware-container">
+                <div class="component">
+                    <div class="pot-container">
+                        <span style="font-weight: bold; color: #ff9800;">Potentiomètre (PA0)</span>
+                        <input type="range" min="0" max="4095" value="0" class="slider" id="adc-slider">
+                        <div class="data-display">
+                            <div>ADC : <span id="adc-val">0</span></div>
+                            <div>Volt : <span id="volt-val">0.00</span> V</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="wire" style="background: #ff9800;"></div>
+                
+                <div class="board">
+                    <div class="chip"></div>
+                    <div class="pin pa0" title="PA0"></div>
+                    <div class="pin pa5" title="PA5"></div>
+                </div>
+                
+                <div class="wire" style="background: var(--pixel-blue);"></div>
+                
+                <div class="component">
+                    <div class="led-viz" id="sim-led"></div>
+                    <p style="font-weight: bold;">LED (PA5)</p>
+                </div>
+            </div>
+
+            <h3 style="color: var(--pixel-blue); font-size: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem;">Code de lecture (Polling)</h3>
+            <p style="color: var(--text-muted);">Le microcontrôleur interroge séquentiellement le convertisseur analogique-numérique (ADC1) configuré sur 12 bits.</p>
+            <pre><code><span class="comment">// Boucle infinie - main.c</span>
+<span class="keyword">while</span> (1) 
+{ 
+    <span class="function">HAL_ADC_Start</span>(&hadc1); 
+ 
+    <span class="function">HAL_ADC_PollForConversion</span>(&hadc1, 100); 
+ 
+    adcResult = <span class="function">HAL_ADC_GetValue</span>(&hadc1); 
+ 
+    <span class="function">HAL_ADC_Stop</span>(&hadc1); 
+ 
+    <span class="keyword">if</span> (adcResult < 2048) 
+    { 
+        <span class="function">HAL_GPIO_WritePin</span>(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); 
+    } 
+    <span class="keyword">else</span> 
+    { 
+        <span class="function">HAL_GPIO_WritePin</span>(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); 
+    } 
+ 
+    <span class="function">HAL_Delay</span>(10); 
+}</code></pre>
+        </section>
+
+        <h2 class="section-title">2. Post-Lab : Analyse Technique</h2>
+        <section class="qa-grid">
+            
+            <div class="qa-card">
+                <div class="qa-question">L'ADC du STM32C0 est configuré sur 12 bits. Quelle est la valeur numérique maximale ? Si on passait en 8 bits, quelle serait cette valeur ?</div>
+                <div class="qa-answer">
+                    Pour un ADC 12 bits, la plage de valeurs s'étend de 0 à $(2^{12} - 1)$. La valeur maximale retournée par <code>HAL_ADC_GetValue()</code> est donc <strong>4095</strong>.<br>
+                    Si l'ADC était configuré avec une résolution de 8 bits, la formule serait $(2^8 - 1)$, ce qui donne une valeur numérique maximale de <strong>255</strong>.
+                </div>
+            </div>
+
+            <div class="qa-card">
+                <div class="qa-question">À quoi sert la fonction HAL_ADC_PollForConversion() ? Que se passerait-il si on l'omettait ?</div>
+                <div class="qa-answer">
+                    La fonction <code>HAL_ADC_PollForConversion()</code> met le processeur en attente (jusqu'à un Timeout défini, ici 100 ms) jusqu'à ce que le module matériel ADC ait terminé de convertir la tension analogique en signal numérique. La conversion prend un certain nombre de cycles d'horloge. Si on omettait cette fonction, on appellerait <code>GetValue()</code> trop tôt et on obtiendrait une <strong>valeur erronée (incomplète) ou l'ancienne valeur</strong> de la conversion précédente.
+                </div>
+            </div>
+
+            <div class="qa-card">
+                <div class="qa-question">Pourquoi avons-nous choisi la valeur 2048 comme seuil dans le test if ? À quelle tension précise en Volts cela correspond-il ?</div>
+                <div class="qa-answer">
+                    La valeur <strong>2048</strong> correspond exactement à la moitié de l'échelle d'un ADC 12 bits (4096 / 2).<br>
+                    Sachant que la tension de référence maximale (VREF+) est de 3.3V, ce seuil numérique correspond à une tension de : <br>
+                    <div class="formula">Tension = 3.3V * (2048 / 4095) ≈ 1.65 Volts</div>
+                </div>
+            </div>
+
+            <div class="qa-card">
+                <div class="qa-question">Pourquoi appelle-t-on HAL_ADC_Stop() à la fin de chaque lecture ? Quel impact sur la consommation d'énergie ?</div>
+                <div class="qa-answer">
+                    L'ADC est un bloc matériel analogique qui contient des amplificateurs et des circuits de comparaison très gourmands en énergie. Appeler <code>HAL_ADC_Stop()</code> permet de désactiver ces circuits entre deux conversions. Si on laissait l'ADC allumé en permanence, <strong>la consommation d'énergie (courant de fuite) du microcontrôleur augmenterait considérablement</strong>, ce qui est critique pour les systèmes embarqués fonctionnant sur batterie.
+                </div>
+            </div>
+
+            <div class="qa-card">
+                <div class="qa-question">Comment éviter le clignotement instable de la LED au milieu du potentiomètre (concept d'hystérésis) ?</div>
+                <div class="qa-answer">
+                    Si le signal est très proche de 2048, le moindre bruit électrique fera osciller la valeur lue (ex: 2047, 2049, 2048...) provoquant un clignotement parasite. Pour éviter cela, on applique une <strong>hystérésis (deux seuils de basculement différents)</strong> :<br>
+                    On allume la LED seulement si on dépasse un seuil haut (ex: <code>adcResult > 2100</code>).<br>
+                    On éteint la LED seulement si on descend sous un seuil bas (ex: <code>adcResult < 2000</code>).<br>
+                    Entre 2000 et 2100, la LED garde simplement son état actuel.
+                </div>
+            </div>
+
+            <div class="qa-card">
+                <div class="qa-question">Si on remplace le potentiomètre par un capteur LM35 (10mV / °C), quelle est la formule pour obtenir la température ?</div>
+                <div class="qa-answer">
+                    Il faut convertir la valeur numérique brute (0 à 4095) en Volts, puis en millivolts, et enfin diviser par la sensibilité du capteur (10mV par degré). La formule finale en C serait :<br>
+                    <div class="formula">float temperature = adcResult * (330.0 / 4095.0);</div><br>
+                    <i>Explication : (adcResult * 3300mV / 4095) donne la tension en mV. On divise ce résultat par 10 pour obtenir les degrés Celsius, ce qui simplifie le ratio à 330/4095.</i>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <script>
+        // 1. Generation des étoiles
+        const starContainer = document.getElementById('stars');
+        for (let i = 0; i < 200; i++) {
+            let star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = Math.random() * 3 + 'px';
+            star.style.height = star.style.width;
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            star.style.animationDelay = Math.random() * 5 + 's';
+            starContainer.appendChild(star);
+        }
+
+        // 2. Jumeau Numérique de l'ADC
+        const adcSlider = document.getElementById('adc-slider');
+        const adcValDisplay = document.getElementById('adc-val');
+        const voltValDisplay = document.getElementById('volt-val');
+        const simLed = document.getElementById('sim-led');
+
+        adcSlider.addEventListener('input', function() {
+            const rawValue = parseInt(this.value);
+            
+            // Mise à jour de l'affichage numérique
+            adcValDisplay.innerText = rawValue;
+            
+            // Calcul et affichage des Volts (3.3V max pour 4095)
+            const volts = (rawValue * 3.3) / 4095;
+            voltValDisplay.innerText = volts.toFixed(2);
+            
+            // Logique de seuil matérielle simulée (if adcResult < 2048)
+            if (rawValue < 2048) {
+                simLed.classList.remove('on');
+            } else {
+                simLed.classList.add('on');
+            }
+        });
+    </script>
+</body>
+</html>
