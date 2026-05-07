@@ -72,16 +72,19 @@
         .pot-container { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; border: 1px solid #ff9800; }
         .slider { -webkit-appearance: none; width: 150px; height: 8px; border-radius: 5px; background: #333; outline: none; margin: 15px 0; }
         .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ff9800; cursor: pointer; box-shadow: 0 0 10px #ff9800; }
-        .data-display { font-family: monospace; font-size: 1.1rem; color: #ffb74d; background: #111; padding: 5px 10px; border-radius: 5px; width: 100%; text-align: center; }
+        .data-display { font-family: monospace; font-size: 1.1rem; color: #ffb74d; background: #111; padding: 10px; border-radius: 5px; width: 100%; text-align: left; }
 
         /* ================= POST-LAB ================= */
-        .qa-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+        .qa-grid { display: flex; flex-direction: column; gap: 2rem; }
         .qa-card { background: rgba(0, 0, 0, 0.3); border-left: 4px solid var(--pixel-violet); padding: 2rem; border-radius: 8px; transition: all 0.3s ease; }
-        .qa-card:hover { background: rgba(161, 66, 244, 0.1); transform: translateX(10px); }
-        .qa-question { font-size: 1.2rem; font-weight: bold; color: var(--pixel-blue); margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; }
-        .qa-question::before { content: "Q:"; color: var(--pixel-violet); font-size: 1.4rem; }
-        .qa-answer { color: var(--text-main); line-height: 1.7; padding-left: 2.2rem; }
-        .formula { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-family: monospace; color: #82aaff; display: inline-block; margin-top: 10px; }
+        .qa-card:hover { background: rgba(161, 66, 244, 0.1); transform: translateX(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .qa-question { font-size: 1.3rem; font-weight: bold; color: var(--pixel-blue); margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid rgba(138, 180, 248, 0.2); padding-bottom: 10px;}
+        .qa-question::before { content: "Q:"; color: var(--pixel-violet); font-size: 1.5rem; }
+        .qa-answer { color: var(--text-main); line-height: 1.8; font-size: 1.05rem; }
+        .qa-answer strong { color: #fff; }
+        
+        .formula-box { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; color: #82aaff; margin: 15px 0; border: 1px solid #333; }
+        .highlight-text { color: #c3e88d; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -112,17 +115,17 @@
         <section class="glass-panel">
             
             <p style="color: var(--text-muted); text-align: center; margin-bottom: 20px;">
-                Objectif : Lire une tension entre 0V et 3.3V provenant d'un potentiomètre sur PA0. La LED sur PA5 s'allume si la valeur dépasse 50%.
+                Objectif : Lire une tension entre 0V et 3.3V provenant d'un potentiomètre sur PA0. La LED sur PA5 s'allume si la valeur dépasse 50% de la pleine échelle (VREF/2).
             </p>
 
             <div class="hardware-container">
                 <div class="component">
                     <div class="pot-container">
-                        <span style="font-weight: bold; color: #ff9800;">Potentiomètre (PA0)</span>
+                        <span style="font-weight: bold; color: #ff9800; margin-bottom: 10px;">Potentiomètre (PA0)</span>
                         <input type="range" min="0" max="4095" value="0" class="slider" id="adc-slider">
                         <div class="data-display">
-                            <div>ADC : <span id="adc-val">0</span></div>
-                            <div>Volt : <span id="volt-val">0.00</span> V</div>
+                            <div>ADC Brute : <span id="adc-val" class="highlight-text">0</span></div>
+                            <div>Tension   : <span id="volt-val" class="highlight-text">0.00</span> V</div>
                         </div>
                     </div>
                 </div>
@@ -144,18 +147,23 @@
             </div>
 
             <h3 style="color: var(--pixel-blue); font-size: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem;">Code de lecture (Polling)</h3>
-            <p style="color: var(--text-muted);">Le microcontrôleur interroge séquentiellement le convertisseur analogique-numérique (ADC1) configuré sur 12 bits.</p>
+            <p style="color: var(--text-muted);">Le microcontrôleur interroge séquentiellement le convertisseur analogique-numérique (ADC1) configuré sur une résolution de 12 bits.</p>
             <pre><code><span class="comment">// Boucle infinie - main.c</span>
 <span class="keyword">while</span> (1) 
 { 
+    <span class="comment">// Lance l'échantillonnage matériel</span>
     <span class="function">HAL_ADC_Start</span>(&hadc1); 
  
+    <span class="comment">// Attente bloquante (max 100ms) de la fin de conversion SAR</span>
     <span class="function">HAL_ADC_PollForConversion</span>(&hadc1, 100); 
  
+    <span class="comment">// Récupération de la valeur numérique dans le registre de données</span>
     adcResult = <span class="function">HAL_ADC_GetValue</span>(&hadc1); 
  
+    <span class="comment">// Arrêt de l'ADC pour économiser l'énergie de la carte</span>
     <span class="function">HAL_ADC_Stop</span>(&hadc1); 
  
+    <span class="comment">// Logique décisionnelle (Seuil à ~1.65V)</span>
     <span class="keyword">if</span> (adcResult < 2048) 
     { 
         <span class="function">HAL_GPIO_WritePin</span>(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); 
@@ -169,56 +177,78 @@
 }</code></pre>
         </section>
 
-        <h2 class="section-title">2. Post-Lab : Analyse Technique</h2>
+        <h2 class="section-title">2. Post-Lab : Analyse Technique Approfondie</h2>
         <section class="qa-grid">
             
             <div class="qa-card">
                 <div class="qa-question">L'ADC du STM32C0 est configuré sur 12 bits. Quelle est la valeur numérique maximale ? Si on passait en 8 bits, quelle serait cette valeur ?</div>
                 <div class="qa-answer">
-                    Pour un ADC 12 bits, la plage de valeurs s'étend de 0 à $(2^{12} - 1)$. La valeur maximale retournée par <code>HAL_ADC_GetValue()</code> est donc <strong>4095</strong>.<br>
-                    Si l'ADC était configuré avec une résolution de 8 bits, la formule serait $(2^8 - 1)$, ce qui donne une valeur numérique maximale de <strong>255</strong>.
+                    <p>La résolution d'un ADC détermine le nombre de pas discrets qu'il peut utiliser pour représenter un signal analogique. La formule générale du nombre de valeurs est $2^n$, où $n$ est le nombre de bits.</p>
+                    <p>Pour un <strong>ADC 12 bits</strong>, on a $2^{12} = 4096$ niveaux possibles. Puisque l'on commence à compter à partir de zéro, la valeur numérique maximale retournée par le registre de données sera :</p>
+                    <div class="formula-box">Valeur Max (12 bits) = 2¹² - 1 = 4095</div>
+                    <p>Le "Quantum" (ou LSB - Least Significant Bit) pour une tension de référence de 3.3V est très précis : $q = 3.3V / 4095 \approx 0.80 mV$. Le microcontrôleur détecte donc des variations de 0.8 millivolts.</p>
+                    <p>Si l'ADC était configuré avec une résolution de <strong>8 bits</strong> pour économiser de la mémoire (Direct Memory Access plus rapide par exemple) :</p>
+                    <div class="formula-box">Valeur Max (8 bits) = 2⁸ - 1 = 255</div>
+                    <p>La précision chuterait considérablement : $q = 3.3V / 255 \approx 12.9 mV$.</p>
                 </div>
             </div>
 
             <div class="qa-card">
                 <div class="qa-question">À quoi sert la fonction HAL_ADC_PollForConversion() ? Que se passerait-il si on l'omettait ?</div>
                 <div class="qa-answer">
-                    La fonction <code>HAL_ADC_PollForConversion()</code> met le processeur en attente (jusqu'à un Timeout défini, ici 100 ms) jusqu'à ce que le module matériel ADC ait terminé de convertir la tension analogique en signal numérique. La conversion prend un certain nombre de cycles d'horloge. Si on omettait cette fonction, on appellerait <code>GetValue()</code> trop tôt et on obtiendrait une <strong>valeur erronée (incomplète) ou l'ancienne valeur</strong> de la conversion précédente.
+                    <p>L'ADC des STM32 utilise une architecture matérielle appelée <strong>SAR (Successive Approximation Register)</strong>. La conversion du signal analogique capturé par l'échantillonneur-bloqueur (Sample & Hold) vers un format binaire n'est pas instantanée. Elle requiert plusieurs cycles d'horloge de l'ADC (environ 12.5 cycles minimum).</p>
+                    <p>La fonction <code>HAL_ADC_PollForConversion(&hadc1, 100)</code> est une fonction bloquante (mode <em>Polling</em>). Elle met le processeur principal en boucle d'attente jusqu'à ce que le bit <strong>EOC (End Of Conversion)</strong> soit levé dans le registre de statut matériel, signalant que la donnée est prête. Le paramètre <code>100</code> est un <em>Timeout</em> de sécurité (en millisecondes) pour éviter que le système ne plante si l'ADC subit une défaillance matérielle.</p>
+                    <p><strong>Conséquence de son omission :</strong> Le processeur exécuterait immédiatement <code>HAL_ADC_GetValue()</code> avant que la conversion SAR ne soit terminée. Il lirait alors le registre de données au mauvais moment, récupérant soit un "0", soit du "bruit" (garbage data), soit l'ancienne valeur de la conversion précédente.</p>
                 </div>
             </div>
 
             <div class="qa-card">
                 <div class="qa-question">Pourquoi avons-nous choisi la valeur 2048 comme seuil dans le test if ? À quelle tension précise en Volts cela correspond-il ?</div>
                 <div class="qa-answer">
-                    La valeur <strong>2048</strong> correspond exactement à la moitié de l'échelle d'un ADC 12 bits (4096 / 2).<br>
-                    Sachant que la tension de référence maximale (VREF+) est de 3.3V, ce seuil numérique correspond à une tension de : <br>
-                    <div class="formula">Tension = 3.3V * (2048 / 4095) ≈ 1.65 Volts</div>
+                    <p>La valeur <strong>2048</strong> n'a pas été choisie au hasard : elle représente exactement la moitié de l'échelle d'un convertisseur 12 bits ($4096 / 2 = 2048$). Cela correspond mécaniquement au point central (50%) de la course de notre potentiomètre, offrant une interface homme-machine logique.</p>
+                    <p>D'un point de vue électrique, pour calculer la tension analogique exacte correspondante, on utilise la formule de conversion inverse :</p>
+                    <div class="formula-box">Tension (V) = (Valeur ADC × VREF+) / (2ⁿ - 1)<br><br>Tension = (2048 × 3.3V) / 4095 ≈ 1.650 Volts</div>
+                    <p>Le seuil de basculement de la LED est donc précisément réglé à <strong>1.65V</strong>.</p>
                 </div>
             </div>
 
             <div class="qa-card">
                 <div class="qa-question">Pourquoi appelle-t-on HAL_ADC_Stop() à la fin de chaque lecture ? Quel impact sur la consommation d'énergie ?</div>
                 <div class="qa-answer">
-                    L'ADC est un bloc matériel analogique qui contient des amplificateurs et des circuits de comparaison très gourmands en énergie. Appeler <code>HAL_ADC_Stop()</code> permet de désactiver ces circuits entre deux conversions. Si on laissait l'ADC allumé en permanence, <strong>la consommation d'énergie (courant de fuite) du microcontrôleur augmenterait considérablement</strong>, ce qui est critique pour les systèmes embarqués fonctionnant sur batterie.
+                    <p>L'ADC est un périphérique <strong>analogique</strong>. Contrairement aux périphériques purement numériques, il intègre des composants physiques gourmands (réseau de condensateurs commutés, amplificateurs opérationnels, comparateurs de tension).</p>
+                    <p>Lorsqu'on appelle <code>HAL_ADC_Start()</code>, ces circuits sont mis sous tension et commencent à consommer un "courant statique" continu, même lorsqu'ils ne sont pas activement en train de convertir. Appeler <code>HAL_ADC_Stop()</code> permet de couper l'horloge du périphérique et d'éteindre l'étage analogique interne.</p>
+                    <p><strong>Impact énergétique :</strong> Dans le cadre d'un système embarqué fonctionnant sur batterie (IoT, capteurs portables), laisser l'ADC allumé en permanence diviserait la durée de vie de la batterie de manière drastique. L'éteindre entre deux mesures espacées (Duty Cycling) est une des règles d'or du <em>Low-Power Design</em> en ingénierie électronique.</p>
                 </div>
             </div>
 
             <div class="qa-card">
                 <div class="qa-question">Comment éviter le clignotement instable de la LED au milieu du potentiomètre (concept d'hystérésis) ?</div>
                 <div class="qa-answer">
-                    Si le signal est très proche de 2048, le moindre bruit électrique fera osciller la valeur lue (ex: 2047, 2049, 2048...) provoquant un clignotement parasite. Pour éviter cela, on applique une <strong>hystérésis (deux seuils de basculement différents)</strong> :<br>
-                    On allume la LED seulement si on dépasse un seuil haut (ex: <code>adcResult > 2100</code>).<br>
-                    On éteint la LED seulement si on descend sous un seuil bas (ex: <code>adcResult < 2000</code>).<br>
-                    Entre 2000 et 2100, la LED garde simplement son état actuel.
+                    <p>Avec un seuil unique strict à <code>2048</code>, le système souffre d'instabilité. Si le potentiomètre est physiquement placé à 1.65V, le bruit électromagnétique naturel (EMI) et les imperfections mécaniques de la piste en carbone vont faire osciller la lecture de l'ADC (ex: 2047, 2049, 2046, 2048...). Le processeur va donc allumer et éteindre la LED à une vitesse fulgurante (phénomène de <em>Chattering</em>).</p>
+                    <p>La solution professionnelle est de créer une <strong>Hystérésis logicielle (Bascule de Schmitt)</strong> en définissant deux seuils distincts espacés par une "zone morte" (Deadband) qui absorbera le bruit :</p>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 15px; margin-top: 10px; border-radius: 5px; color: #a6accd;"><code><span class="comment">// Implémentation d'une hystérésis de 100 unités</span>
+<span class="keyword">if</span> (adcResult > 2100) { 
+    <span class="function">HAL_GPIO_WritePin</span>(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);   <span class="comment">// Seuil d'allumage haut</span>
+} 
+<span class="keyword">else if</span> (adcResult < 2000) { 
+    <span class="function">HAL_GPIO_WritePin</span>(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); <span class="comment">// Seuil d'extinction bas</span>
+}
+<span class="comment">// Entre 2000 et 2100, on ne fait rien, la LED garde son état précédent.</span></code></pre>
                 </div>
             </div>
 
             <div class="qa-card">
-                <div class="qa-question">Si on remplace le potentiomètre par un capteur LM35 (10mV / °C), quelle est la formule pour obtenir la température ?</div>
+                <div class="qa-question">Si on remplace le potentiomètre par un capteur de température LM35 (Sensibilité : 10mV / °C), quelle est la formule C pour obtenir la température exacte ?</div>
                 <div class="qa-answer">
-                    Il faut convertir la valeur numérique brute (0 à 4095) en Volts, puis en millivolts, et enfin diviser par la sensibilité du capteur (10mV par degré). La formule finale en C serait :<br>
-                    <div class="formula">float temperature = adcResult * (330.0 / 4095.0);</div><br>
-                    <i>Explication : (adcResult * 3300mV / 4095) donne la tension en mV. On divise ce résultat par 10 pour obtenir les degrés Celsius, ce qui simplifie le ratio à 330/4095.</i>
+                    <p>Le capteur LM35 est un capteur linéaire. Il délivre 0V à 0°C, et sa tension de sortie augmente de 10 millivolts pour chaque degré Celsius supplémentaire (ex: 250mV = 25°C).</p>
+                    <p>La conversion nécessite deux étapes mathématiques que l'on peut simplifier dans le code :<br>
+                    <strong>Étape 1 :</strong> Calculer la tension lue en millivolts (mV).<br>
+                    $V_{mV} = (\text{adcResult} \times 3300.0) / 4095.0$<br>
+                    <strong>Étape 2 :</strong> Diviser par la sensibilité (10 mV/°C) pour isoler les degrés.<br>
+                    $Temp = V_{mV} / 10.0$</p>
+                    <p>En factorisant cette équation pour optimiser le temps de calcul du processeur ARM (3300 divisé par 10 devient 330), on obtient le code C suivant :</p>
+                    <div class="formula-box">float temperature = (adcResult * 330.0f) / 4095.0f;</div>
+                    <p style="font-size: 0.9rem; color: #777; margin-top: 10px;">*Note technique : On utilise des nombres flottants avec le suffixe 'f' pour forcer le compilateur à utiliser l'unité de calcul flottante (FPU) simple précision du microcontrôleur, évitant ainsi la troncature liée aux divisions d'entiers.*</p>
                 </div>
             </div>
 
